@@ -37,10 +37,10 @@ subscriber.Work("test", 100, func(data string, err error) {
 5. Submit a pull request :D
 
 ## History
-TODO: 
+Well romanians will have some sort of an idea why this project is named ceaucescu 
 
-## Credits
-TODO: Write credits
+## Documentation
+https://godoc.org/github.com/0x4139/ceausescu
 
 ## License
 TODO: MIT
