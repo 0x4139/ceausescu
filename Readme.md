@@ -27,7 +27,7 @@ subscriber.Work("test", 100, func(data string, err error) {
        panic(err)
     }
 })
-```go
+```
 
 ## Contributing
 1. Fork it!
