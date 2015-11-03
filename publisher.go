@@ -34,7 +34,7 @@ func (publisher *Publisher) Close() {
 }
 func (publisher *Publisher) Publish(queue string, value string) error {
 	con, err := publisher.connectionPool.Get()
-	if err!nil {
+	if err!=nil {
 		continue
 	}
 	defer con.Close()
