@@ -12,9 +12,8 @@ type Subscriber struct {
 
 type Worker func(string, error)
 
-func (subscriber *Subscriber) doWork(fn Worker, queue string) {
+func (subscriber *Subscriber) doWork(fn Worker, queue string, con redis.Conn) {
 	for {
-		con := subscriber.connectionPool.Get()
 		data, err := con.Do("BRPOP", "ceausescu:" + queue, 0)
 		if err != nil {
 			fn("", err)
@@ -25,7 +24,6 @@ func (subscriber *Subscriber) doWork(fn Worker, queue string) {
 			fn("", err)
 			continue
 		}
-		con.Close()
 		fn(result["ceausescu:" + queue], err)
 	}
 }
@@ -52,15 +50,17 @@ func NewSubscriber(config Config) Subscriber {
 
 func (subscriber *Subscriber) Work(queueName string, concurency int, fn Worker) {
 	for i := 0; i < concurency; i++ {
-		subscriber.wg.Add(1)
-		go subscriber.doWork(fn, queueName)
+		con := subscriber.connectionPool.Get()
+		go subscriber.doWork(fn, queueName, con)
 	}
 }
 
+func (subscriber *Subscriber) Start()  {
+	subscriber.wg.Add(1)
+}
 func (subscriber *Subscriber) Wait() {
 	subscriber.wg.Wait()
 }
-
-func (subscriber *Subscriber) Done() {
+func (subscriber *Subscriber) Stop() {
 	subscriber.wg.Done()
 }

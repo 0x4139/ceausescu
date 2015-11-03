@@ -14,7 +14,7 @@ func TestShouldCheckTheSubscriberConcurently(t *testing.T) {
 	}
 	log.Println("Building work!")
 	publisher := ceausescu.NewPublisher(config)
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 1024; i++ {
 		publisher.Publish("test", "laptecuorez")
 	}
 	publisher.Close()
@@ -22,17 +22,16 @@ func TestShouldCheckTheSubscriberConcurently(t *testing.T) {
 
 	subscriber := ceausescu.NewSubscriber(config)
 	log.Println("Building workers!")
-	subscriber.Work("test", 100, func(data string, err error) {
+	subscriber.Work("test", 1024, func(data string, err error) {
+		t.Log(data)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
 		if strings.Compare(data, "laptecuorez") != 0 {
 			t.Fatalf("strings don't match expected:laptecuorez got:%s", data)
 		}
-		subscriber.Done()
 	})
 	log.Println("Waiting for completion!")
-	subscriber.Wait()
 	defer subscriber.Close()
 	log.Println("Test finished!")
 }
