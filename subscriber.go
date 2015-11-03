@@ -1,5 +1,9 @@
 package ceausescu
-import "github.com/garyburd/redigo/redis"
+import (
+	"github.com/garyburd/redigo/redis"
+	"sync"
+	"time"
+)
 
 type Subscriber struct {
 	connectionPool *redis.Pool
@@ -8,11 +12,14 @@ type Subscriber struct {
 
 type Worker func(string, error)
 
-func (subscriber *Subscriber) doWork(fn Worker,queue string) {
+func (subscriber *Subscriber) doWork(fn Worker, queue string) {
 	for {
-		data, err := subscriber.connectionPool.Get().Do("RPOP", "ceausescu/"+queue)
+		data, err := subscriber.connectionPool.Get().Do("RPOP", "ceausescu/" + queue)
 		if err != nil {
-			fn("", err)
+			if err != redis.ErrNil {
+				fn("", err)
+			}
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		returnValue, err := redis.String(data, nil)
@@ -37,7 +44,10 @@ func NewSubscriber(config Config) Subscriber {
 }
 
 func (subscriber *Subscriber) Work(queueName string, concurency int, fn Worker) {
+	var wg sync.WaitGroup
 	for i := 0; i < concurency; i++ {
-		go subscriber.doWork(fn,queueName)
+		wg.Add(1)
+		go subscriber.doWork(fn, queueName)
 	}
+	wg.Wait()
 }
