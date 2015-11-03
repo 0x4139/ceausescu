@@ -35,9 +35,12 @@ subscriber.Work("test", 100, func(data string, err error) {
 3. Commit your changes: `git commit -am 'Add some feature'`
 4. Push to the branch: `git push origin my-new-feature`
 5. Submit a pull request :D
+
 ## History
-TODO: 
-## Credits
-TODO: Write credits
+Well romanians will have some sort of an idea why this project is named ceaucescu 
+
+## Documentation
+https://godoc.org/github.com/0x4139/ceausescu
+
 ## License
 TODO: MIT
