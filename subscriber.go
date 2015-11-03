@@ -14,7 +14,12 @@ type Worker func(string, error)
 
 func (subscriber *Subscriber) doWork(fn Worker, queue string) {
 	for {
-		data, err := subscriber.connectionPool.Get().Do("BRPOP", "ceausescu:" + queue, 0)
+		con, err := subscriber.connectionPool.Get()
+		if err!nil {
+			continue
+		}
+		defer con.Close()
+		data, err := con.Do("BRPOP", "ceausescu:" + queue, 0)
 		if err != nil {
 			fn("", err)
 			continue
@@ -32,7 +37,7 @@ func (subscriber *Subscriber) Close() {
 }
 func NewSubscriber(config Config) Subscriber {
 	redisPool := &redis.Pool{
-		MaxIdle: 10,
+		MaxIdle: config.MaxConnections,
 		MaxActive: config.MaxConnections, // max number of connections
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.Dial("tcp", config.RedisAddress)
