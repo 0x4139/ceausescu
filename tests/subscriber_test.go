@@ -9,7 +9,7 @@ import (
 
 func TestShouldCheckTheSubscriberConcurently(t *testing.T) {
 	config := ceausescu.Config{
-		MaxConnections:100,
+		MaxConnections:1024,
 		RedisAddress:os.Getenv("redis"),
 	}
 	log.Println("Building work!")

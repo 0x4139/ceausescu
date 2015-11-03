@@ -33,11 +33,8 @@ func (publisher *Publisher) Close() {
 	publisher.connectionPool.Close()
 }
 func (publisher *Publisher) Publish(queue string, value string) error {
-	con, err := publisher.connectionPool.Get()
-	if err!=nil {
-		continue
-	}
+	con:= publisher.connectionPool.Get()
 	defer con.Close()
-	_, err = con.Do("LPUSH", "ceausescu:" + queue, value)
+	_, err := con.Do("LPUSH", "ceausescu:" + queue, value)
 	return err
 }
