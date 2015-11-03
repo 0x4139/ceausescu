@@ -20,7 +20,7 @@ func TestPublisherShouldInsertValueInQueue(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	data, err := redisConnection.Do("RPOP", "ceausescu/publisherTest")
+	data, err := redisConnection.Do("RPOP", "ceausescu:publisherTest")
 	if err != nil {
 		panic(err)
 	}

@@ -2,28 +2,29 @@ package ceausescu
 import (
 	"github.com/garyburd/redigo/redis"
 	"sync"
-	"time"
 )
 
 type Subscriber struct {
 	connectionPool *redis.Pool
 	config         Config
+	wg             sync.WaitGroup
 }
 
 type Worker func(string, error)
 
 func (subscriber *Subscriber) doWork(fn Worker, queue string) {
 	for {
-		data, err := subscriber.connectionPool.Get().Do("RPOP", "ceausescu/" + queue)
+		data, err := subscriber.connectionPool.Get().Do("BRPOP", "ceausescu:" + queue, 0)
 		if err != nil {
-			if err != redis.ErrNil {
-				fn("", err)
-			}
-			time.Sleep(1 * time.Second)
+			fn("", err)
 			continue
 		}
-		returnValue, err := redis.String(data, nil)
-		fn(returnValue, err)
+		result, err := redis.StringMap(data, nil)
+		if err != nil {
+			fn("", err)
+			continue
+		}
+		fn(result["ceausescu:" + queue], err)
 	}
 }
 func (subscriber *Subscriber) Close() {
@@ -44,10 +45,16 @@ func NewSubscriber(config Config) Subscriber {
 }
 
 func (subscriber *Subscriber) Work(queueName string, concurency int, fn Worker) {
-	var wg sync.WaitGroup
 	for i := 0; i < concurency; i++ {
-		wg.Add(1)
+		subscriber.wg.Add(1)
 		go subscriber.doWork(fn, queueName)
 	}
-	wg.Wait()
+}
+
+func (subscriber *Subscriber) Wait() {
+	subscriber.wg.Wait()
+}
+
+func (subscriber *Subscriber) Done() {
+	subscriber.wg.Done()
 }
