@@ -15,8 +15,6 @@ type Worker func(string, error)
 func (subscriber *Subscriber) doWork(fn Worker, queue string) {
 	for {
 		con := subscriber.connectionPool.Get()
-
-		defer con.Close()
 		data, err := con.Do("BRPOP", "ceausescu:" + queue, 0)
 		if err != nil {
 			fn("", err)
@@ -27,6 +25,7 @@ func (subscriber *Subscriber) doWork(fn Worker, queue string) {
 			fn("", err)
 			continue
 		}
+		con.Close()
 		fn(result["ceausescu:" + queue], err)
 	}
 }
