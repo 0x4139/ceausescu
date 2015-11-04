@@ -2,18 +2,26 @@ package ceausescu
 import (
 	"github.com/garyburd/redigo/redis"
 	"sync"
+//	"log"
 )
 
 type Subscriber struct {
-	connectionPool *redis.Pool
-	config         Config
-	wg             sync.WaitGroup
+	config    Config
+	wg        sync.WaitGroup
+	isRunning bool
 }
 
 type Worker func(string, error)
 
-func (subscriber *Subscriber) doWork(fn Worker, queue string, con redis.Conn) {
-	for {
+func (subscriber *Subscriber) doWork(fn Worker, queue string) {
+	con, err := redis.Dial("tcp", subscriber.config.RedisAddress)
+	defer con.Close()
+	defer subscriber.wg.Done()
+	if err != nil {
+		fn("", err)
+		return
+	}
+	for subscriber.isRunning {
 		data, err := con.Do("BRPOP", "ceausescu:" + queue, 0)
 		if err != nil {
 			fn("", err)
@@ -27,40 +35,23 @@ func (subscriber *Subscriber) doWork(fn Worker, queue string, con redis.Conn) {
 		fn(result["ceausescu:" + queue], err)
 	}
 }
-func (subscriber *Subscriber) Close() {
-	subscriber.connectionPool.Close()
-}
 func NewSubscriber(config Config) Subscriber {
-	redisPool := &redis.Pool{
-		MaxIdle: config.MaxConnections,
-		MaxActive: config.MaxConnections, // max number of connections
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", config.RedisAddress)
-			if err != nil {
-				panic(err.Error())
-			}
-			return c, err
-		},
-	}
-
 	return Subscriber{
-		connectionPool :redisPool,
+		config:config,
 	}
 }
-
 func (subscriber *Subscriber) Work(queueName string, concurency int, fn Worker) {
+	subscriber.isRunning = true
 	for i := 0; i < concurency; i++ {
-		con := subscriber.connectionPool.Get()
-		go subscriber.doWork(fn, queueName, con)
+		subscriber.wg.Add(1)
+		go subscriber.doWork(fn, queueName)
 	}
 }
 
-func (subscriber *Subscriber) Start()  {
-	subscriber.wg.Add(1)
-}
 func (subscriber *Subscriber) Wait() {
 	subscriber.wg.Wait()
 }
 func (subscriber *Subscriber) Stop() {
-	subscriber.wg.Done()
+	subscriber.isRunning = false
+	subscriber.wg.Wait()
 }

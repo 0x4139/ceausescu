@@ -4,37 +4,27 @@ import "github.com/garyburd/redigo/redis"
 
 type Config struct {
 	RedisAddress   string
-	MaxConnections int
 }
 
 type Publisher struct {
-	connectionPool *redis.Pool
-	config         Config
+	connection redis.Conn
+	config     Config
 }
 
 
 func NewPublisher(config Config) Publisher {
-	redisPool := &redis.Pool{
-		MaxIdle: config.MaxConnections,
-		MaxActive: config.MaxConnections, // max number of connections
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", config.RedisAddress)
-			if err != nil {
-				panic(err.Error())
-			}
-			return c, err
-		},
+	c, err := redis.Dial("tcp", config.RedisAddress)
+	if err != nil {
+		panic(err.Error())
 	}
 	return Publisher{
-		connectionPool :redisPool,
+		connection :c,
 	}
 }
 func (publisher *Publisher) Close() {
-	publisher.connectionPool.Close()
+	publisher.connection.Close()
 }
 func (publisher *Publisher) Publish(queue string, value string) error {
-	con:= publisher.connectionPool.Get()
-	_, err := con.Do("LPUSH", "ceausescu:" + queue, value)
-	con.Close()
+	_, err := publisher.connection.Do("LPUSH", "ceausescu:" + queue, value)
 	return err
 }
