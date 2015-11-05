@@ -23,11 +23,9 @@ func TestShouldCheckTheSubscriberConcurently(t *testing.T) {
 	log.Println("Done! building work!")
 	subscriber := ceausescu.NewSubscriber(config)
 	log.Println("Building workers!")
-	subscriber.Work("test", 1024, func(data string, err error) {
+	subscriber.Work("test", 1024, func(data string) {
 		log.Println(data)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
+		
 		if strings.Compare(data, "laptecuorez") != 0 {
 			t.Fatalf("strings don't match expected:laptecuorez got:%s", data)
 		}
