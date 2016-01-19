@@ -30,7 +30,6 @@ func NewSubscriber(config Config) Subscriber {
 		return c, err
 	}, config.MaxConnections)
 	return Subscriber{
-		config:config,
 		connectionPool:redisPool,
 	}
 }
