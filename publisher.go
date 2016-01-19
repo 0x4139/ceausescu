@@ -2,29 +2,29 @@ package ceausescu
 
 import "github.com/garyburd/redigo/redis"
 
-type Config struct {
-	RedisAddress   string
-}
-
 type Publisher struct {
-	connection redis.Conn
-	config     Config
+	connectionPool *redis.Pool
 }
-
 
 func NewPublisher(config Config) Publisher {
-	c, err := redis.Dial("tcp", config.RedisAddress)
-	if err != nil {
-		panic(err.Error())
-	}
+	redisPool := redis.NewPool(func() (redis.Conn, error) {
+		c, err := redis.Dial("tcp", config.RedisAddress)
+		if err != nil {
+			panic(err.Error())
+		}
+		return c, err
+	}, config.MaxConnections)
+
 	return Publisher{
-		connection :c,
+		connectionPool :redisPool,
 	}
 }
 func (publisher *Publisher) Close() {
-	publisher.connection.Close()
+	publisher.connectionPool.Close()
 }
 func (publisher *Publisher) Publish(queue string, value string) error {
-	_, err := publisher.connection.Do("LPUSH", "ceausescu:" + queue, value)
+	connection := publisher.connectionPool.Get()
+	defer connection.Close()
+	_, err := connection.Do("LPUSH", "ceausescu:" + queue, value)
 	return err
 }
